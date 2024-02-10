@@ -101,36 +101,3 @@ def calibrate(x, y, dy, resume=None):
     upper = np.percentile(func_rand, 97.5, axis = 0)
     
     return [x_func, lower, median, upper], params, posteriors
-
-
-# def cali_plot(x, y, dy, resume):
-#     x_func, lower, median, upper, alpha_rand = calibrate(x, y, dy, prior)
-
-#     line_trace = go.Scatter(
-#         x=x_func,
-#         y=median,
-#         line=dict(color='#274653'),
-#         mode='lines', hoverinfo="skip",
-#     )
-#     upper_trace = go.Scatter(
-#         name='Upper Bound',
-#         x=x_func,
-#         y=upper,
-#         mode='lines',
-#         marker=dict(color="#444"),
-#         line=dict(width=0),
-#         showlegend=False
-#     )
-#     lower_trace = go.Scatter(
-#         name='Lower Bound',
-#         x=x_func,
-#         y=lower,
-#         marker=dict(color="#444"),
-#         line=dict(width=0),
-#         mode='lines',
-#         fillcolor='rgba(68, 68, 68, 0.3)',
-#         fill='tonexty',
-#         showlegend=False
-#     )
-
-#     return [line_trace, upper_trace, lower_trace, alpha_rand]

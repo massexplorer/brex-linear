@@ -127,18 +127,3 @@ def cali_plot(x, y, dy, prior):
     )
 
     return [line_trace, upper_trace, lower_trace, alpha_rand]
-
-
-# def generator_function(username):
-#     count = 0
-#     while True:
-#         yield f"Hello, {username}! Count: {count}"
-#         count += 1
-
-# def generator_function():
-#     # Emit the new samples to all connected clients
-#     socketio.emit('update_samples', {'new_samples': new_samples})
-#     count = 1
-#     while True:
-#         yield count
-#         count += 1
