@@ -1,18 +1,12 @@
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 import time
 import pandas as pd
 import random as rand
 import numpy as np
-import base64
-from datetime import datetime, date
 
-import dash
-from dash import dcc, html
-from dash.dependencies import Input, Output, State
-import json
-# import dash_bootstrap_components as dbc
-from dash.exceptions import PreventUpdate
-
-import utils.dash_reusable_components as drc
 import utils.figures as figs
 from utils.views import *
 from utils.calibrate import *
@@ -48,7 +42,7 @@ def update_main_fig(figure, count):
     figure['layout']['xaxis'] = dict(title='x', range=[0, 160], fixedrange=True)
     figure['layout']['yaxis'] = dict(title='y', range=[0, 130], fixedrange=True)
 
-
+# START INTERVAL
 @app.callback(
     [
         Output('interval', 'disabled', allow_duplicate=True),
@@ -63,10 +57,12 @@ def disable_interval(n_clicks):
     print("enabled")
     return [False, 0]
 
+
+# CALIBRATE
 @app.callback(
     [
         Output('graph', 'figure', allow_duplicate=True),
-        Output("div-graphs", "children", allow_duplicate=True),
+        Output("div-corner", "children", allow_duplicate=True),
         Output('samples-memory', 'data', allow_duplicate=True),
         Output('div-lineplot', 'children', allow_duplicate=True),
     ],
@@ -148,11 +144,13 @@ def fit(n_intervals, figure, table_data, samples):
          html.Img(src='data:image/png;base64,{}'.format(line_plot_string2), id="line_plot2"),]
     ]
 
+
+# RESET/CLEAR
 @app.callback(
     [
         Output('graph', 'figure', allow_duplicate=True),
         Output('tbl', 'data', allow_duplicate=True),
-        Output("div-graphs", "children", allow_duplicate=True),
+        Output('div-corner', 'children', allow_duplicate=True),
         Output('samples-memory', 'data', allow_duplicate=True),
         Output('interval', 'disabled', allow_duplicate=True),
     ],
@@ -182,6 +180,7 @@ def clear(n_clicks):
         True,
     ]
 
+# UPDATE POINTS
 @app.callback(
     [
         Output('graph', 'figure', allow_duplicate=True),
@@ -216,9 +215,7 @@ def update(click_data, derived_virtual_data, figure):
         # figure['layout']['xaxis']['range'] = [0,160]
         # figure['layout']['yaxis']['range'] = [0,130]
         return [figure, derived_virtual_data]
-    # else:
-        # if derived_virtual_data is None or len(derived_virtual_data) == 0:
-        #     return [{'x': None, 'y': None, 'dy': None}]
+
     if click_data is not None and 'points' in click_data:
         x_click = click_data['points'][0]['x']
         y_click = click_data['points'][0]['y']

@@ -1,11 +1,9 @@
-import colorlover as cl
 import plotly.graph_objs as go
 import plotly.express as px
 import numpy as np
 import base64
 import io
 import time
-from functools import partial
 from plotly.tools import mpl_to_plotly
 import matplotlib.pyplot as plt
 import matplotlib

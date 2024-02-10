@@ -1,14 +1,8 @@
 from dash import dcc
 from dash import html
-# import dash_bootstrap_components as dbc
-import utils.dash_reusable_components as drc
-import colorlover as cl
 import plotly.graph_objs as go
 import plotly.express as px
 import numpy as np
-import pandas as pd
-from functools import partial
-from plotly.tools import mpl_to_plotly
 from dash import dash_table
 
 def view():
@@ -41,17 +35,12 @@ def view():
             ),
         ]),
         html.Div(id='center-column', children=[
-            # dcc.Loading(children=[
-            #     html.Div(id="div-graph", children=[
             dcc.Graph(id="graph", figure=fig, config={'scrollZoom': False, 'responsive': False, 
                                                       'autosizable': False, 'displayModeBar': False, 'displaylogo': False, 'staticPlot': False, 'doubleClick': False, 
                                                       'showTips': False, 'showAxisDragHandles': False, 'showAxisRangeEntryBoxes': False, 'showLink': False,})
-            # 'displayModeBar': False,
-            #     ])
-            # ])
         ]),
         html.Div(id="right-column", children=[
-            html.Div(id="div-graphs"),
+            html.Div(id="div-corner"),
             html.Div(id="div-lineplot"),
         ]),
     ]),                 
