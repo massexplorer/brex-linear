@@ -1,107 +1,46 @@
 import numpy as np
 import plotly.graph_objs as go
+import pymc as pm
+import arviz as az
+
+def linear(x, m, b):
+    return m * x + b
+
+def metro_sample(x, y_obs, y_err, cum_trace=None, n_samples=10000, batch_size=100):
+    with pm.Model() as linear_model:
+        intercept = pm.Normal('intercept', mu=0, sigma=10)
+        slope = pm.Normal('slope', mu=0, sigma=10)
+        mu = intercept + slope * x
+        y = pm.Normal('y_obs', mu=mu, sigma=y_err, observed=y_obs)
+        step = pm.Metropolis([intercept, slope])
+        
+        if cum_trace is not None:
+            n = len(np.array(cum_trace['posterior']['slope']).flatten())
+            if n >= n_samples:
+                return 'stop'
+            
+        trace = pm.sample(draws=batch_size, step=step, trace=None, chains=1, 
+                          discard_tuned_samples=False)
+
+        if cum_trace is None:
+            cum_trace = trace
+        else:
+            cum_trace = az.concat([cum_trace, trace], dim='chain')
+
+        return cum_trace
 
 
-def linear(x,params):
-    return params[0]*10+params[1]*x
-
-
-def prior_linear(params_vals,arguments):
-    params0,params0_Cov_Inv_matrix=arguments
-    mu=np.array(params_vals)-np.array(params0)
-    params_size=len(params_vals)
-    return (2*np.pi)**(-params_size/2)*np.linalg.det(params0_Cov_Inv_matrix)**(-1)*np.exp(-np.dot(mu,np.dot(params0_Cov_Inv_matrix,mu))/2)
-
-
-def likelihood(params,arguments):
-#Assumed format for data=[xvals,yvals]
-    data, model, sigmas = arguments
-    llh_log_val=0
-
-    for i in range(len(data[0])):
-        llh_log_val+=-0.5*((data[1][i]-model(data[0][i],params))/sigmas[i])**2\
-        -np.log(2*np.pi*sigmas[i]**2)/2
-      
-    return np.exp(llh_log_val)
-
-
-def metropolis(data, sigma, prior_arguments, n, step_size, 
-               resume=None, model=linear, prior=prior_linear, likelihood=likelihood):
-    # step_size should be a list the size of the parameters of the model
-    likelihood_arguments = [data, model, sigma]
-    cov_step_size = np.diag(step_size)**2
-    
-    if resume is None:
-        # Set the initial state of the chain
-        params_current = prior_arguments[0]
-        params_list = []
-        posterior_list = []
-        posterior_current = (likelihood(params_current,likelihood_arguments))*\
-                    (prior(params_current, prior_arguments))
-        # Run the Metropolis-Hastings algorithm for burning
-        burn_samples = 1000
-        for i in range(burn_samples):
-            # Propose a new state for the chain
-            params_proposed=np.random.multivariate_normal(params_current,cov_step_size)
-            posterior_proposed=(likelihood(params_proposed,likelihood_arguments))*(prior(params_proposed,\
-                                                                                prior_arguments))
-            # Calculate the acceptance probability
-            acceptance_prob = min(1, posterior_proposed / posterior_current)
-            # Accept or reject the proposal
-            if np.random.uniform() < acceptance_prob:
-                params_current = params_proposed
-                posterior_current=posterior_proposed
-    else:
-        params_current = resume[0]
-        posterior_current = resume[1]
-        params_list = [params_current]
-        posterior_list = [posterior_current]
-
-    for i in range(n):
-        params_proposed=np.random.multivariate_normal(params_current,cov_step_size)
-        posterior_proposed=(likelihood(params_proposed,likelihood_arguments))*\
-        (prior(params_proposed,prior_arguments))
-        # Calculate the acceptance probability
-        acceptance_prob = min(1, posterior_proposed / posterior_current)
-        # Accept or reject the proposal
-        if np.random.uniform() < acceptance_prob:
-            params_current = params_proposed
-            posterior_current=posterior_proposed
-        # Store the current state
-        params_list.append(params_current)
-        posterior_list.append(posterior_current)
-
-    return [
-        np.array(params_list),
-        np.array(posterior_list),
-    ]
-
-
-def calibrate(x, y, dy, resume=None, n=1000, params=None):
+def calibrate(x, y, dy, cum_trace=None, batch_size=100):
     x_func = np.arange(0, 161)
-    old_params = np.empty((0, 2), float) if params is None or len(params) < 1 \
-                                         else np.array(params)
-    # take second half of old_params
-    # old_params = old_params[old_params.shape[0]//4*3:]
-
-    #Setting up the prior
-    prior_arguments = [[0, 1], np.linalg.inv(np.diag([2**2, 2**2]))]
 
     #Doing the Metropolis sampling for 1000 values
-    results = metropolis([x,y], dy, prior_arguments, n, [.2,.2], resume=resume)
-    params = results[0]
-    posteriors = results[1]
-
-    #Taking 10000 samples from the visited posterior to estimate the percentiles in the model predictions
-    # rng = np.random.default_rng()
-    # alpha_rand = rng.choice(all_chains,(20000),replace=False)
-    # print(alpha_rand.shape, alpha_rand[0], alpha_rand[1], alpha_rand[2])
-    # func_rand = [linear(x_func,alpha) for alpha in alpha_rand]
-
-    func_rand = [linear(x_func,alpha) for alpha in np.append(old_params, params, axis=0)]
-
+    cum_trace = metro_sample(x, y, dy, cum_trace=cum_trace, batch_size=batch_size)
+    m = np.array(cum_trace['posterior']['slope']).flatten()
+    b = np.array(cum_trace['posterior']['intercept']).flatten()
+    
+    func_rand = linear(x_func, m, b)
     lower = np.percentile(func_rand, 2.5, axis = 0)
     median = np.percentile(func_rand, 50, axis = 0)
     upper = np.percentile(func_rand, 97.5, axis = 0)
     
-    return [x_func, lower, median, upper], params, posteriors
+    return [x_func, lower, median, upper], cum_trace
