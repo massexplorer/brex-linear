@@ -34,13 +34,8 @@ app.layout = html.Div(children=[
     ],),
     *view(),
     dcc.Store(id="samples-memory", data={'params': [], 'last posterior': None}),
-    dcc.Interval(id='interval', interval=2000, n_intervals=0, max_intervals=10, disabled=True),
+    dcc.Interval(id='interval', interval=500, n_intervals=0, max_intervals=60, disabled=True),
 ])
-
-def update_main_fig(figure, count):
-    figure['layout']['title'] = f'n={count}'
-    figure['layout']['xaxis'] = dict(title='x', range=[0, 160], fixedrange=True)
-    figure['layout']['yaxis'] = dict(title='y', range=[0, 130], fixedrange=True)
 
 # START INTERVAL
 @app.callback(
@@ -85,43 +80,13 @@ def fit(n_intervals, figure, table_data, samples):
     else:
         resume = (samples['params'][-1], samples['last posterior'])
 
-    print('resume', resume)
-    graph_points, params, posteriors = calibrate(x, y, dy, resume=resume)
+    graph_points, params, posteriors = calibrate(x, y, dy, resume=resume, n=300, 
+                                                 params=samples['params'])
     x_func, lower, median, upper = graph_points
 
-    line_trace = go.Scatter(
-        x=x_func,
-        y=median,
-        line=dict(color='#274653'),
-        mode='lines', hoverinfo="skip",
-    )
-    upper_trace = go.Scatter(
-        name='Upper Bound',
-        x=x_func,
-        y=upper,
-        mode='lines',
-        marker=dict(color="#444"),
-        line=dict(width=0),
-        showlegend=False
-    )
-    lower_trace = go.Scatter(
-        name='Lower Bound',
-        x=x_func,
-        y=lower,
-        marker=dict(color="#444"),
-        line=dict(width=0),
-        mode='lines',
-        fillcolor='rgba(68, 68, 68, 0.3)',
-        fill='tonexty',
-        showlegend=False
-    )
-
-    figure['data'] = figure['data'][:2]
-    figure['data'].append(line_trace)
-    figure['data'].append(upper_trace)
-    figure['data'].append(lower_trace)
-    figure['layout']['xaxis'] = dict(title='x', range=[0,160], fixedrange=True)
-    figure['layout']['yaxis'] = dict(title='y', range=[0,130], fixedrange=True)
+    figs.add_fit(figure, x_func, median, upper, lower)
+    # figure['layout']['xaxis'] = dict(title='x', range=[0,160], fixedrange=True)
+    # figure['layout']['yaxis'] = dict(title='y', range=[0,130], fixedrange=True)
 
     image_string = figs.corner_plot(params)
 
@@ -153,31 +118,21 @@ def fit(n_intervals, figure, table_data, samples):
         Output('div-corner', 'children', allow_duplicate=True),
         Output('samples-memory', 'data', allow_duplicate=True),
         Output('interval', 'disabled', allow_duplicate=True),
+        Output('div-lineplot', 'children', allow_duplicate=True),
     ],
     Input('btn_clear', 'n_clicks'),
 )
 def clear(n_clicks):
     if n_clicks == None or n_clicks == 0:
         raise PreventUpdate
-    fig = px.imshow(np.zeros(shape=(130, 160, 4)), origin='lower')
-    fig.add_trace(go.Scatter(x=[], y=[], marker=dict(color='#e76f51', size=10), name='',
-                             error_y = dict(type='data', symmetric=True, array=[], color='#e76f51', thickness=1, width=2,), mode='markers'),
-                             )
-    fig.update_layout( 
-        margin=dict(r=20, t=10, l=25, b=20),
-        xaxis=dict(title='x', range=[0,160], fixedrange=True),
-        yaxis=dict(title='y', range=[0,130], fixedrange=True),
-        showlegend=False,
-    )
-    fig['data'][0]['hovertemplate'] = 'x: %{x}<br>y: %{y}'
-    fig['data'][0]['name'] = ''
-
+    
     return [
-        fig, 
+        figs.main_plot(), 
         [{'x': None, 'y': None, 'dy': None}], 
         None,
         {'params': [], 'last posterior': None},
         True,
+        [],
     ]
 
 # UPDATE POINTS
@@ -212,8 +167,11 @@ def update(click_data, derived_virtual_data, figure):
         last_row = derived_virtual_data[-1]
         if any(last_row.values()):
             derived_virtual_data.append({'x': None, 'y': None, 'dy': None})
+        figs.reset_axes(figure)
         # figure['layout']['xaxis']['range'] = [0,160]
         # figure['layout']['yaxis']['range'] = [0,130]
+        # figure['layout']['xaxis']['fixedrange'] = True
+        # figure['layout']['yaxis']['fixedrange'] = True
         return [figure, derived_virtual_data]
 
     if click_data is not None and 'points' in click_data:
@@ -228,6 +186,10 @@ def update(click_data, derived_virtual_data, figure):
 
         # Add a new empty row
         derived_virtual_data.append({'x': None, 'y': None, 'dy': None})
+        # figure['layout']['xaxis']['range'] = [0,160]
+        # figure['layout']['yaxis']['range'] = [0,130]
+        # figure['layout']['xaxis']['fixedrange'] = True
+        # figure['layout']['yaxis']['fixedrange'] = True
         figure['layout']['xaxis'] = dict(title='x', range=[0,160], fixedrange=True)
         figure['layout']['yaxis'] = dict(title='y', range=[0,130], fixedrange=True)
 

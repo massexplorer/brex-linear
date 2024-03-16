@@ -4,21 +4,11 @@ import plotly.graph_objs as go
 import plotly.express as px
 import numpy as np
 from dash import dash_table
+import utils.figures as figs
 
 def view():
 
-    fig = px.imshow(np.zeros(shape=(130, 160, 4)), origin='lower')
-    fig.add_trace(go.Scatter(x=[], y=[], marker=dict(color='#e76f51', size=10), name='',
-                             error_y = dict(type='data', symmetric=True, array=[], color='#e76f51', thickness=1, width=2,), mode='markers'),
-                             )
-    fig.update_layout( 
-        margin=dict(r=20, t=10, l=25, b=20),
-        xaxis=dict(title='x', range=[0,160], fixedrange=True),
-        yaxis=dict(title='y', range=[0,130], fixedrange=True),
-        showlegend=False,
-    )
-    fig['data'][0]['hovertemplate'] = 'x: %{x}<br>y: %{y}'
-    fig['data'][0]['name'] = ''
+    fig = figs.main_plot()
 
 
     return html.Div(id="app-container", children=[
@@ -29,15 +19,35 @@ def view():
             ]),
             dash_table.DataTable(
                 data = [{'x': None, 'y': None, 'dy': None}],
-                columns = [{"name": 'x', "id": 'x'}, {"name": 'y', "id": 'y'}, {"name": '\u03B4y', "id": 'dy'}], 
+                columns = [{"name": 'x', "id": 'x'}, {"name": 'y', "id": 'y'}, 
+                           {"name": '\u03B4y', "id": 'dy'}], 
                 id='tbl', editable=True, row_deletable=True, 
-                style_data_conditional=[{'if': {'state': 'active'}, 'backgroundColor': 'rgba(0, 0, 0, 0)', 'border': '1px solid #e76f51', 'color': 'black'}],
+                style_data_conditional=[{'if': {'state': 'active'}, 
+                                        #  'backgroundColor': 'rgba(0, 0, 0, 0)', 
+                                         'border': '1px solid #e76f51', }],
+                # style_data={
+                #     'color': '#a5b1cd',
+                #     'backgroundColor': '#282b38',
+                # },
+                style_header={
+                    'fontWeight': 'bold',
+                },
+                style_cell={
+                    'backgroundColor': '#282b38',
+                    'color': '#a5b1cd',
+                    'border': '1px solid #a5b1cd',
+                },
             ),
         ]),
         html.Div(id='center-column', children=[
-            dcc.Graph(id="graph", figure=fig, config={'scrollZoom': False, 'responsive': False, 
-                                                      'autosizable': False, 'displayModeBar': False, 'displaylogo': False, 'staticPlot': False, 'doubleClick': False, 
-                                                      'showTips': False, 'showAxisDragHandles': False, 'showAxisRangeEntryBoxes': False, 'showLink': False,})
+            dcc.Graph(id="graph", figure=fig, 
+                      config={'scrollZoom': False, 'responsive': False, 
+                              'autosizable': False, 'displayModeBar': False, 
+                              'displaylogo': False, 'staticPlot': False, 
+                              'doubleClick': False, 'showTips': False, 
+                              'showAxisDragHandles': False, 
+                              'showAxisRangeEntryBoxes': False, 
+                              'showLink': False,})
         ]),
         html.Div(id="right-column", children=[
             html.Div(id="div-corner"),

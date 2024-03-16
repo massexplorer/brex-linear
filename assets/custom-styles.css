@@ -191,7 +191,7 @@
 }
 
 #btn {
-    width: 50%;
+    width: 45%;
     height: auto;
     margin-left: auto;
     margin-right: auto;
@@ -202,7 +202,7 @@
 }
 
 #btn_clear {
-    width: 50%;
+    width: 45%;
     height: auto;
     margin-left: auto;
     margin-right: auto;
@@ -212,6 +212,7 @@
     background-color: #2f3445;
     margin-top: 10%;
     margin-bottom: 10%;
+    margin-left: 10%;
 }
 
 #tbl {

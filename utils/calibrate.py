@@ -77,14 +77,18 @@ def metropolis(data, sigma, prior_arguments, n, step_size,
     ]
 
 
-def calibrate(x, y, dy, resume=None):
+def calibrate(x, y, dy, resume=None, n=1000, params=None):
     x_func = np.arange(0, 161)
+    old_params = np.empty((0, 2), float) if params is None or len(params) < 1 \
+                                         else np.array(params)
+    # take second half of old_params
+    # old_params = old_params[old_params.shape[0]//4*3:]
 
     #Setting up the prior
     prior_arguments = [[0, 1], np.linalg.inv(np.diag([2**2, 2**2]))]
 
-    #Doing the Metropolis sampling for 10000 values
-    results = metropolis([x,y], dy, prior_arguments, 20000, [.2,.2], resume=resume)
+    #Doing the Metropolis sampling for 1000 values
+    results = metropolis([x,y], dy, prior_arguments, n, [.2,.2], resume=resume)
     params = results[0]
     posteriors = results[1]
 
@@ -94,7 +98,7 @@ def calibrate(x, y, dy, resume=None):
     # print(alpha_rand.shape, alpha_rand[0], alpha_rand[1], alpha_rand[2])
     # func_rand = [linear(x_func,alpha) for alpha in alpha_rand]
 
-    func_rand = [linear(x_func,alpha) for alpha in params]
+    func_rand = [linear(x_func,alpha) for alpha in np.append(old_params, params, axis=0)]
 
     lower = np.percentile(func_rand, 2.5, axis = 0)
     median = np.percentile(func_rand, 50, axis = 0)
