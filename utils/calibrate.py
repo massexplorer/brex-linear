@@ -2,9 +2,9 @@ import numpy as np
 import plotly.graph_objs as go
 import pymc as pm
 import arviz as az
-
-def linear(x, m, b):
-    return m * x + b
+import logging
+logger = logging.getLogger("pymc3")
+logger.setLevel(logging.ERROR)
 
 def metro_sample(x, y_obs, y_err, cum_trace=None, n_samples=10000, batch_size=100):
     with pm.Model() as linear_model:
@@ -22,25 +22,28 @@ def metro_sample(x, y_obs, y_err, cum_trace=None, n_samples=10000, batch_size=10
         trace = pm.sample(draws=batch_size, step=step, trace=None, chains=1, 
                           discard_tuned_samples=False)
 
-        if cum_trace is None:
-            cum_trace = trace
-        else:
-            cum_trace = az.concat([cum_trace, trace], dim='chain')
+        # if cum_trace is None:
+        #     cum_trace = trace
+        # else:
+        #     cum_trace = az.concat([cum_trace, trace], dim='chain')
 
-        return cum_trace
+        # round all floats to 2 decimal places
+        # return cum_trace
+        return trace
 
 
 def calibrate(x, y, dy, cum_trace=None, batch_size=100):
     x_func = np.arange(0, 161)
 
-    #Doing the Metropolis sampling for 1000 values
+    #Doing the Metropolis sampling for 100 values
     cum_trace = metro_sample(x, y, dy, cum_trace=cum_trace, batch_size=batch_size)
     m = np.array(cum_trace['posterior']['slope']).flatten()
     b = np.array(cum_trace['posterior']['intercept']).flatten()
     
-    func_rand = linear(x_func, m, b)
-    lower = np.percentile(func_rand, 2.5, axis = 0)
-    median = np.percentile(func_rand, 50, axis = 0)
-    upper = np.percentile(func_rand, 97.5, axis = 0)
+    y_func = x_func[:, np.newaxis] * m[np.newaxis, :] + b[np.newaxis, :]
+
+    lower = np.percentile(y_func, 2.5, axis = 1)
+    median = np.percentile(y_func, 50, axis = 1)
+    upper = np.percentile(y_func, 97.5, axis = 1)
     
     return [x_func, lower, median, upper], cum_trace

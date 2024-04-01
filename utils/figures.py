@@ -7,7 +7,37 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('agg')
-import corner
+# import corner
+import pymc as pm
+import arviz as az
+
+def pair_plot(trace):
+    plt.rcParams.update({'text.color' : "#a5b1cd", 'axes.labelcolor' : "#a5b1cd",
+                         'xtick.color': "#a5b1cd", 'ytick.color': "#a5b1cd",})
+    figure = plt.figure(facecolor='#282b38')
+    az.plot_pair(
+    trace,
+    var_names=['intercept', 'slope'],
+    kind="hexbin",
+    marginals=True,
+    figsize=(10, 10),
+    gridsize=35,)
+
+    # Set the background color of all axes
+    axes = plt.gcf().get_axes()
+    for ax in axes:
+        ax.set_facecolor('#282b38')
+
+    plt.text(.6, .75, f"N = {len(trace['posterior']['slope'])}", fontsize=18,
+             transform=plt.gcf().transFigure)
+    # Convert the plot to an image
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    image_string = base64.b64encode(buffer.read()).decode('utf-8')
+    plt.close()
+    return image_string
+        
 
 def add_fit(fig, x_func, median, upper, lower):
     line_trace = go.Scatter(
@@ -21,7 +51,7 @@ def add_fit(fig, x_func, median, upper, lower):
         mode='lines',
         marker=dict(color="#444"),
         line=dict(width=0),
-        showlegend=False,
+        showlegend=False, hoverinfo="skip",
     )
     lower_trace = go.Scatter(
         name='Lower Bound',
@@ -31,13 +61,14 @@ def add_fit(fig, x_func, median, upper, lower):
         mode='lines',
         fillcolor='rgba(233, 197, 106, 0.15)',
         fill='tonexty',
-        showlegend=False,
+        showlegend=False, hoverinfo="skip",
     )
 
     fig['data'] = fig['data'][:2]
     fig['data'].append(line_trace)
     fig['data'].append(upper_trace)
     fig['data'].append(lower_trace)
+    return fig
 
 def reset_axes(fig):
     fig['layout']['xaxis'] = dict(title='x', range=[0,160], fixedrange=True,
@@ -63,37 +94,37 @@ def main_plot():
     fig['data'][0]['name'] = ''
     return fig
 
-def corner_plot(samples, bins=12):
-    SUB = str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉')
-    plt.rcParams.update({'text.color' : "#a5b1cd", 'axes.labelcolor' : "#a5b1cd",
-                        'xtick.color': "#a5b1cd", 'ytick.color': "#a5b1cd",})
-    figure = plt.figure(facecolor='#282b38')
-    corner.corner(np.array(samples), bins=bins, quantiles=None,
-                  labels=[f"\u03B1{i}".translate(SUB) for i in range(len(samples))], 
-                        label_kwargs={"fontsize":20}, hist_kwargs= {"linewidth":2, "color":'#e76f51'}, 
-                        smooth=(1.7), smooth1d=1.0, 
-                        color='#e76f51',
-                        show_titles=True, facecolor='#282b38', title_kwargs={"fontsize":20},
-                        fig=figure, hist2d_kwargs={"color":'#e76f51'},)
+# def corner_plot(samples, bins=12):
+#     SUB = str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉')
+#     plt.rcParams.update({'text.color' : "#a5b1cd", 'axes.labelcolor' : "#a5b1cd",
+#                         'xtick.color': "#a5b1cd", 'ytick.color': "#a5b1cd",})
+#     figure = plt.figure(facecolor='#282b38')
+#     corner.corner(np.array(samples), bins=bins, quantiles=None,
+#                   labels=[f"\u03B1{i}".translate(SUB) for i in range(len(samples))], 
+#                         label_kwargs={"fontsize":20}, hist_kwargs= {"linewidth":2, "color":'#e76f51'}, 
+#                         smooth=(1.7), smooth1d=1.0, 
+#                         color='#e76f51',
+#                         show_titles=True, facecolor='#282b38', title_kwargs={"fontsize":20},
+#                         fig=figure, hist2d_kwargs={"color":'#e76f51'},)
 
 
-    # Set the background color of all axes
-    axes = plt.gcf().get_axes()
-    for ax in axes:
-        ax.set_facecolor('#282b38')
+#     # Set the background color of all axes
+#     axes = plt.gcf().get_axes()
+#     for ax in axes:
+#         ax.set_facecolor('#282b38')
 
-    plt.text(.6, .75, f"N = {len(samples)}", fontsize=18,
-             transform=plt.gcf().transFigure)
-    # Convert the plot to an image
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
-    buffer.seek(0)
-    image_string = base64.b64encode(buffer.read()).decode('utf-8')
-    plt.close()
-    return image_string
+#     plt.text(.6, .75, f"N = {len(samples)}", fontsize=18,
+#              transform=plt.gcf().transFigure)
+#     # Convert the plot to an image
+#     buffer = io.BytesIO()
+#     plt.savefig(buffer, format='png')
+#     buffer.seek(0)
+#     image_string = base64.b64encode(buffer.read()).decode('utf-8')
+#     plt.close()
+#     return image_string
 
 def line_plot(samples, title_n):
-    samples = samples[::10]
+    # samples = samples[::2]
     plt.rcParams.update({'text.color' : "#a5b1cd", 'axes.labelcolor' : "#a5b1cd",
                         'xtick.color': "#a5b1cd", 'ytick.color': "#a5b1cd",})
     plt.figure(facecolor='#282b38')
